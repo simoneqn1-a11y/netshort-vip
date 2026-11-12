@@ -1,0 +1,364 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="NetShort VIP">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#0a0a0a">
+<title>NetShort VIP</title>
+<style>
+:root{--bg:#0a0a0a;--card:#1a1a1a;--accent:#ff4757;--gold:#ffd700;--text:#fff;--sub:#888;--green:#2ed573;--safe-top:env(safe-area-inset-top);--safe-bottom:env(safe-area-inset-bottom)}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:-apple-system,BlinkMacSystemFont,'SF Pro Text','Helvetica Neue',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;min-height:100dvh;overflow-x:hidden;-webkit-user-select:none;user-select:none;padding-top:var(--safe-top);padding-bottom:var(--safe-bottom)}
+.screen{display:none;min-height:100vh;min-height:100dvh}
+.screen.active{display:flex;flex-direction:column}
+.header{display:flex;align-items:center;padding:12px 16px;background:#111;position:sticky;top:0;z-index:10;padding-top:calc(var(--safe-top) + 12px)}
+.header h1{flex:1;font-size:18px;font-weight:700}
+.header .back{font-size:24px;margin-right:12px;cursor:pointer;width:32px;-webkit-tap-highlight-color:transparent}
+.btn{display:inline-flex;align-items:center;justify-content:center;padding:10px 20px;border-radius:8px;border:none;font-size:14px;font-weight:600;cursor:pointer;transition:.2s;-webkit-tap-highlight-color:transparent}
+.btn-primary{background:var(--accent);color:#fff}
+.btn-gold{background:linear-gradient(135deg,#ffd700,#ff8c00);color:#000}
+.btn-green{background:var(--green);color:#000}
+.btn:active{transform:scale(.95);opacity:.8}
+input,textarea{background:#222;border:1px solid #333;color:#fff;padding:10px 14px;border-radius:8px;font-size:16px;width:100%;outline:none;-webkit-appearance:none}
+input:focus{border-color:var(--accent)}
+#home{padding-bottom:calc(var(--safe-bottom) + 20px)}
+.home-hero{text-align:center;padding:24px 16px 16px;padding-top:calc(var(--safe-top) + 24px)}
+.home-hero .icon{font-size:48px;margin-bottom:4px}
+.home-hero h2{font-size:22px;background:linear-gradient(135deg,var(--accent),var(--gold));-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.home-hero p{color:var(--sub);font-size:12px;margin-top:4px}
+.badge-vip{display:inline-block;background:linear-gradient(135deg,#ffd700,#ff8c00);color:#000;font-size:10px;font-weight:700;padding:2px 6px;border-radius:4px;margin-left:8px}
+.search-box{padding:0 16px 12px;display:flex;gap:8px}
+.search-box input{flex:1}
+.search-box .btn{padding:10px 16px;white-space:nowrap}
+.drama-list{padding:0 16px}
+.drama-card{display:flex;gap:12px;padding:12px;background:var(--card);border-radius:12px;margin-bottom:8px;cursor:pointer;transition:.2s;-webkit-tap-highlight-color:transparent}
+.drama-card:active{background:#252525}
+.drama-card img{width:80px;height:107px;border-radius:8px;object-fit:cover;background:#333;flex-shrink:0}
+.drama-card .info{flex:1;overflow:hidden}
+.drama-card .info h3{font-size:15px;margin-bottom:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.drama-card .info p{color:var(--sub);font-size:12px;line-height:1.4}
+.drama-card .info .tags{margin-top:6px;display:flex;gap:4px;flex-wrap:wrap}
+.drama-card .info .tag{font-size:10px;padding:2px 6px;border-radius:4px;background:#333;color:var(--sub)}
+.drama-card .info .tag.vip{background:rgba(255,215,0,.15);color:var(--gold)}
+.drama-hero{position:relative;width:100%;padding-top:56%;background-size:cover;background-position:center}
+.drama-hero .overlay{position:absolute;inset:0;background:linear-gradient(transparent 40%,var(--bg))}
+.drama-info{padding:16px}
+.drama-info h2{font-size:20px;margin-bottom:8px}
+.drama-info .meta{color:var(--sub);font-size:13px;margin-bottom:12px}
+.episode-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(52px,1fr));gap:8px;padding:0 16px 16px}
+.ep-btn{background:var(--card);border:1px solid #333;border-radius:8px;padding:10px 0;text-align:center;font-size:13px;cursor:pointer;transition:.2s;-webkit-tap-highlight-color:transparent}
+.ep-btn.free{border-color:var(--green);color:var(--green)}
+.ep-btn.locked{border-color:#555;color:#888}
+.ep-btn.unlocked{border-color:var(--gold);color:var(--gold)}
+.ep-btn.playing{background:var(--accent);border-color:var(--accent);color:#fff}
+.ep-btn:active{transform:scale(.9)}
+.unlock-bar{padding:12px 16px;display:flex;gap:8px}
+.unlock-bar .btn{flex:1}
+.section-title{padding:12px 16px 8px;font-size:15px;font-weight:600;color:var(--sub)}
+.status-bar{padding:8px 16px;font-size:12px;color:var(--green);background:#0a2a0a;text-align:center}
+.status-bar.error{color:var(--accent);background:#2a0a0a}
+#player{background:#000}
+.player-wrap{position:relative;width:100%;height:100vh;height:100dvh;background:#000}
+.player-wrap video{width:100%;height:100%;object-fit:contain}
+.player-controls{position:absolute;bottom:0;left:0;right:0;background:linear-gradient(transparent,rgba(0,0,0,.9));padding:16px;padding-bottom:calc(var(--safe-bottom) + 16px);display:flex;align-items:center;gap:12px;opacity:0;transition:.3s}
+.player-wrap.show-controls .player-controls{opacity:1}
+.player-nav{display:flex;gap:12px;align-items:center}
+.player-nav .btn{padding:8px 16px;font-size:13px;border-radius:20px}
+.ep-label{flex:1;text-align:center;font-size:14px}
+.loader{display:flex;align-items:center;justify-content:center;padding:40px}
+.spinner{width:32px;height:32px;border:3px solid #333;border-top-color:var(--accent);border-radius:50%;animation:spin .8s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.toast{position:fixed;top:calc(var(--safe-top) + 20px);left:50%;transform:translateX(-50%);background:var(--card);color:#fff;padding:10px 20px;border-radius:8px;font-size:13px;z-index:100;opacity:0;transition:.3s;pointer-events:none;border:1px solid #333}
+.toast.show{opacity:1}
+.empty{text-align:center;padding:40px 20px;color:var(--sub)}
+.empty .icon{font-size:48px;margin-bottom:8px}
+.install-banner{display:none;background:linear-gradient(135deg,#1a1a2e,#16213e);border:1px solid #333;border-radius:12px;margin:0 16px 12px;padding:12px 16px;text-align:center}
+.install-banner.show{display:block}
+.install-banner p{font-size:12px;color:var(--sub);margin-bottom:8px;line-height:1.4}
+.install-banner .steps{font-size:11px;color:#666;margin-top:6px}
+.settings-overlay{position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:50;display:none;align-items:flex-end;justify-content:center}
+.settings-overlay.show{display:flex}
+.settings-panel{background:var(--card);border-radius:16px 16px 0 0;width:100%;max-width:480px;padding:20px 16px calc(var(--safe-bottom) + 32px);max-height:60vh;overflow-y:auto}
+.settings-panel h3{margin-bottom:12px;font-size:16px}
+.settings-panel label{display:block;font-size:13px;color:var(--sub);margin-bottom:6px}
+.settings-panel textarea{margin-bottom:16px}
+.settings-panel .actions{display:flex;gap:8px}
+.settings-panel .actions .btn{flex:1}
+.drama-count{text-align:center;padding:4px;font-size:11px;color:var(--sub)}
+</style>
+</head>
+<body>
+<div id="toast" class="toast"></div>
+
+<div id="home" class="screen active">
+  <div class="home-hero">
+    <div class="icon">🎬</div>
+    <h2>NetShort VIP<span class="badge-vip">CRACKED</span></h2>
+    <p>Xem phim VIP miễn phí — 1200+ phim</p>
+  </div>
+  <div id="installBanner" class="install-banner">
+    <p>📲 Cài app lên màn hình: Safari → Chia sẻ (□↑) → <b>Thêm vào MH chính</b></p>
+    <div class="steps">App sẽ chạy fullscreen như app thật</div>
+  </div>
+  <div class="search-box">
+    <input id="searchInput" type="text" placeholder="Tìm phim hoặc nhập ID phim..." enterkeyhint="search">
+    <button class="btn btn-primary" onclick="searchDramas()">Tìm</button>
+    <button class="btn" style="background:#333;font-size:18px;padding:8px 12px" onclick="openSettings()">⚙</button>
+  </div>
+  <div id="dramaCount" class="drama-count"></div>
+  <div id="dramaList" class="drama-list">
+    <div class="loader"><div class="spinner"></div></div>
+  </div>
+</div>
+
+<div id="drama" class="screen">
+  <div class="header">
+    <div class="back" onclick="showScreen('home')">‹</div>
+    <h1 id="dramaTitle">Đang tải...</h1>
+  </div>
+  <div id="statusBar" class="status-bar" style="display:none"></div>
+  <div id="dramaHero" class="drama-hero"><div class="overlay"></div></div>
+  <div class="drama-info">
+    <h2 id="dramaName"></h2>
+    <div class="meta"><span id="dramaMeta"></span></div>
+  </div>
+  <div class="unlock-bar">
+    <button class="btn btn-gold" onclick="unlockAll()">🔓 MỞ KHOÁ TẤT CẢ</button>
+    <button class="btn btn-green" onclick="playFirst()">▶ Xem Tập 1</button>
+  </div>
+  <div class="section-title">Danh sách tập (<span id="epCount">0</span> tập)</div>
+  <div id="episodeGrid" class="episode-grid"></div>
+</div>
+
+<div id="player" class="screen">
+  <div class="player-wrap" id="playerWrap" onclick="toggleControls()">
+    <video id="videoEl" playsinline webkit-playsinline></video>
+    <div class="player-controls">
+      <div class="player-nav">
+        <button class="btn btn-primary" onclick="event.stopPropagation();playEp(currentEp-1)">⏮ Trước</button>
+      </div>
+      <div class="ep-label" id="epLabel">Tập 1</div>
+      <div class="player-nav">
+        <button class="btn btn-primary" onclick="event.stopPropagation();playEp(currentEp+1)">Sau ⏭</button>
+      </div>
+      <div class="player-nav">
+        <button class="btn" style="background:#333" onclick="event.stopPropagation();showScreen('drama')">✕</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="settingsOverlay" class="settings-overlay" onclick="if(event.target===this)closeSettings()">
+  <div class="settings-panel">
+    <h3>⚙ Cài đặt Token</h3>
+    <label>JWT Token (tự động điền sẵn)</label>
+    <textarea id="tokenInput" rows="3" placeholder="Bearer eyJ..."></textarea>
+    <div class="actions">
+      <button class="btn btn-primary" onclick="saveToken()">Lưu</button>
+      <button class="btn" style="background:#333;color:#fff" onclick="closeSettings()">Đóng</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const API_MOBILE='https://appsecapi.netshort.com/prod-app-api';
+const API_WEB='https://netshort.com/prod-web-api';
+const BYPASS_HEADER='N7WmN3dCP5Q4RkZjyJSsj2eQvzEZ453KE32h';
+const DEFAULT_TOKEN='Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJsb2dpblR5cGUiOiJsb2dpbiIsImxvZ2luSWQiOjIxMjAzNzAyODkyMTk0OTM4OTAsInJuU3RyIjoiRWdWM0JjUlY4engzVGVqNXBhaGJrdmFSelk5am9za2IifQ.zjNcEugYFJaiZjaUK8iopUp8yVibSXyQ_KDmhugVbs4';
+
+let token='',dramaId='',episodes=[],currentEp=0,unlockedEps=new Set(),videoCache={},allDramas=[];
+
+function init(){
+  try{token=localStorage.getItem('ns_token')||DEFAULT_TOKEN}catch(e){token=DEFAULT_TOKEN}
+  if(!token.startsWith('Bearer '))token='Bearer '+token;
+  document.getElementById('tokenInput').value=token;
+  if(!navigator.standalone&&/iPhone|iPad/.test(navigator.userAgent)){
+    document.getElementById('installBanner').classList.add('show');
+  }
+  loadHomeDramas();
+}
+
+function showScreen(id){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+}
+
+function toast(msg,dur){
+  const t=document.getElementById('toast');
+  t.textContent=msg;t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'),dur||2500);
+}
+
+function setStatus(msg,err){
+  const bar=document.getElementById('statusBar');
+  bar.style.display='block';bar.textContent=msg;
+  bar.className='status-bar'+(err?' error':'');
+}
+
+function openSettings(){
+  document.getElementById('tokenInput').value=token;
+  document.getElementById('settingsOverlay').classList.add('show');
+}
+function closeSettings(){document.getElementById('settingsOverlay').classList.remove('show')}
+function saveToken(){
+  token=document.getElementById('tokenInput').value.trim();
+  if(!token.startsWith('Bearer '))token='Bearer '+token;
+  try{localStorage.setItem('ns_token',token)}catch(e){}
+  toast('Đã lưu token!');closeSettings();
+}
+
+async function api(path,body){
+  const res=await fetch(API_MOBILE+path,{
+    method:'POST',
+    headers:{
+      'Content-Type':'application/json',
+      'Authorization':token,
+      'X-Internal-Crypto-Bypass':BYPASS_HEADER,
+      'Accept-Language':'vi-VN',
+      'device':'ios',
+      'channel':'apple_store'
+    },
+    body:JSON.stringify(body)
+  });
+  return await res.json();
+}
+
+async function loadHomeDramas(){
+  const list=document.getElementById('dramaList');
+  list.innerHTML='<div class="loader"><div class="spinner"></div></div>';
+  try{
+    const r=await fetch('dramas.json');
+    allDramas=await r.json();
+    document.getElementById('dramaCount').textContent=allDramas.length+' phim có sẵn';
+    renderDramaList(allDramas);
+  }catch(e){
+    list.innerHTML='<div class="empty"><div class="icon">⚠️</div><p>Không tải được danh sách phim</p></div>';
+  }
+}
+
+function searchDramas(){
+  const q=document.getElementById('searchInput').value.trim().toLowerCase();
+  if(!q){renderDramaList(allDramas);document.getElementById('dramaCount').textContent=allDramas.length+' phim có sẵn';return}
+  if(/^\d{10,}$/.test(q)){openDrama(q);return}
+  const filtered=allDramas.filter(d=>(d.shortPlayName||'').toLowerCase().includes(q));
+  document.getElementById('dramaCount').textContent='Tìm thấy '+filtered.length+' phim';
+  if(filtered.length===0){
+    document.getElementById('dramaList').innerHTML='<div class="empty"><div class="icon">😕</div><p>Không tìm thấy "'+q.replace(/</g,'&lt;')+'"</p></div>';
+    return;
+  }
+  renderDramaList(filtered);
+}
+
+function renderDramaList(dramas){
+  const list=document.getElementById('dramaList');list.innerHTML='';
+  dramas.forEach(d=>{
+    const id=d.id||d.shortPlayId||d.dramaId;
+    const name=d.shortPlayName||d.name||d.title||('Drama #'+id);
+    const cover=d.coverUrl||d.cover||d.shortPlayCover||'';
+    const card=document.createElement('div');
+    card.className='drama-card';card.onclick=()=>openDrama(id);
+    let imgTag=cover?'<img src="'+cover+'" onerror="this.style.background=\'#333\'">':'<div style="width:80px;height:107px;border-radius:8px;background:#333;display:flex;align-items:center;justify-content:center;font-size:28px;flex-shrink:0">🎬</div>';
+    card.innerHTML=imgTag+'<div class="info"><h3>'+name+'</h3><p>Phim ngắn hay</p><div class="tags"><span class="tag vip">VIP FREE</span></div></div>';
+    list.appendChild(card);
+  });
+}
+
+async function openDrama(id){
+  dramaId=String(id);episodes=[];unlockedEps=new Set();videoCache={};currentEp=0;
+  showScreen('drama');
+  document.getElementById('dramaTitle').textContent='Đang tải...';
+  document.getElementById('dramaName').textContent='';
+  document.getElementById('dramaMeta').textContent='';
+  document.getElementById('dramaHero').style.backgroundImage='';
+  document.getElementById('episodeGrid').innerHTML='<div class="loader"><div class="spinner"></div></div>';
+  document.getElementById('statusBar').style.display='none';
+  try{
+    const epRes=await api('/video/shortPlay/ad/againUnlock/episode',{shortPlayId:dramaId,episodeId:'0',showInterval:1});
+    if(epRes.code!==200&&epRes.code!==0){setStatus('Lỗi: '+(epRes.msg||JSON.stringify(epRes)),true);return}
+    const epList=epRes.data||[];
+    episodes=epList.map((ep,i)=>({id:ep.id||ep.episodeId,no:ep.episodeNo||(i+1),free:ep.episodeFree===1||ep.episodeFree===true,title:ep.episodeName||('Tập '+(i+1))}));
+    if(episodes.length>0){
+      try{
+        const detailRes=await api('/video/shortPlay/base/episode/detail_info',{shortPlayId:dramaId,episodeId:parseInt(episodes[0].id),episodeNo:1,episodeType:1});
+        if(detailRes.data){
+          const d=detailRes.data;
+          document.getElementById('dramaName').textContent=d.shortPlayName||'Drama #'+dramaId;
+          document.getElementById('dramaTitle').textContent=d.shortPlayName||'Drama';
+          document.getElementById('dramaMeta').textContent=episodes.length+' tập • VIP CRACKED';
+          if(d.coverUrl)document.getElementById('dramaHero').style.backgroundImage='url('+d.coverUrl+')';
+        }
+      }catch(e){}
+    }
+    document.getElementById('epCount').textContent=episodes.length;
+    renderEpisodes();
+    setStatus('✓ Đã tải '+episodes.length+' tập • Bấm MỞ KHOÁ TẤT CẢ để xem VIP',false);
+  }catch(e){setStatus('Lỗi kết nối: '+e.message,true)}
+}
+
+function renderEpisodes(){
+  const grid=document.getElementById('episodeGrid');grid.innerHTML='';
+  episodes.forEach((ep,i)=>{
+    const div=document.createElement('div');
+    div.className='ep-btn'+(ep.free?' free':unlockedEps.has(ep.id)?' unlocked':' locked');
+    if(i===currentEp&&document.getElementById('player').classList.contains('active'))div.className='ep-btn playing';
+    div.textContent=ep.no;div.onclick=()=>playEp(i);grid.appendChild(div);
+  });
+}
+
+async function unlockAll(){
+  if(episodes.length===0){toast('Chưa có danh sách tập!');return}
+  setStatus('🔓 Đang mở khoá '+episodes.length+' tập...',false);
+  let ok=0,fail=0;
+  for(let i=0;i<episodes.length;i++){
+    const ep=episodes[i];
+    try{
+      await api('/user/shortPlay/userBase/unlock_free_ad_episode',{shortPlayId:dramaId,shortPlayEpisodeId:ep.id,shortPlayEpisodeNo:ep.no});
+      unlockedEps.add(ep.id);ep.free=true;ok++;
+      setStatus('🔓 Mở khoá: '+ok+'/'+episodes.length,false);
+    }catch(e){fail++}
+  }
+  renderEpisodes();
+  setStatus('✓ Đã mở khoá '+ok+'/'+episodes.length+' tập'+(fail>0?' ('+fail+' lỗi)':' • VIP FREE!'),fail>0);
+  toast('🎉 Mở khoá thành công '+ok+' tập!');
+}
+
+function playFirst(){if(episodes.length>0)playEp(0)}
+
+async function playEp(idx){
+  if(idx<0||idx>=episodes.length){toast(idx<0?'Đây là tập đầu!':'Đây là tập cuối!');return}
+  currentEp=idx;const ep=episodes[idx];
+  showScreen('player');
+  document.getElementById('epLabel').textContent='Tập '+ep.no+' / '+episodes.length;
+  const video=document.getElementById('videoEl');video.poster='';video.src='';
+  if(videoCache[ep.id]){video.src=videoCache[ep.id];video.play().catch(()=>{});renderEpisodes();return}
+  try{
+    const res=await api('/video/shortPlay/base/episode/detail_info',{shortPlayId:dramaId,episodeId:parseInt(ep.id),episodeNo:ep.no,episodeType:1});
+    if(res.data&&res.data.playVoucher){videoCache[ep.id]=res.data.playVoucher;video.src=res.data.playVoucher;video.play().catch(()=>{})}
+    else toast('Không lấy được video URL!');
+  }catch(e){toast('Lỗi: '+e.message)}
+  renderEpisodes();
+}
+
+function toggleControls(){document.getElementById('playerWrap').classList.toggle('show-controls')}
+
+document.getElementById('videoEl').addEventListener('ended',()=>{
+  if(currentEp<episodes.length-1)playEp(currentEp+1);
+});
+
+let touchStartY=0;
+document.getElementById('playerWrap').addEventListener('touchstart',e=>{touchStartY=e.touches[0].clientY});
+document.getElementById('playerWrap').addEventListener('touchend',e=>{
+  const dy=e.changedTouches[0].clientY-touchStartY;
+  if(Math.abs(dy)>80){if(dy<0)playEp(currentEp+1);else playEp(currentEp-1)}
+});
+
+document.getElementById('searchInput').addEventListener('keypress',e=>{if(e.key==='Enter')searchDramas()});
+
+init();
+</script>
+</body>
+</html>
