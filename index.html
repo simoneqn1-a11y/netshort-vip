@@ -154,11 +154,13 @@ input:focus{border-color:var(--accent)}
 
 <div id="settingsOverlay" class="settings-overlay" onclick="if(event.target===this)closeSettings()">
   <div class="settings-panel">
-    <h3>⚙ Cài đặt Token</h3>
-    <label>JWT Token (tự động điền sẵn)</label>
-    <textarea id="tokenInput" rows="3" placeholder="Bearer eyJ..."></textarea>
+    <h3>⚙ Cài đặt</h3>
+    <label>Proxy URL (tunnel Flask server)</label>
+    <input id="proxyInput" type="url" placeholder="https://xxx.trycloudflare.com" style="margin-bottom:12px">
+    <label>JWT Token</label>
+    <textarea id="tokenInput" rows="2" placeholder="Bearer eyJ..."></textarea>
     <div class="actions">
-      <button class="btn btn-primary" onclick="saveToken()">Lưu</button>
+      <button class="btn btn-primary" onclick="saveSettings()">Lưu</button>
       <button class="btn" style="background:#333;color:#fff" onclick="closeSettings()">Đóng</button>
     </div>
   </div>
@@ -166,20 +168,36 @@ input:focus{border-color:var(--accent)}
 
 <script>
 const API_MOBILE='https://appsecapi.netshort.com/prod-app-api';
-const API_WEB='https://netshort.com/prod-web-api';
 const BYPASS_HEADER='N7WmN3dCP5Q4RkZjyJSsj2eQvzEZ453KE32h';
 const DEFAULT_TOKEN='Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJsb2dpblR5cGUiOiJsb2dpbiIsImxvZ2luSWQiOjIxMjAzNzAyODkyMTk0OTM4OTAsInJuU3RyIjoiRWdWM0JjUlY4engzVGVqNXBhaGJrdmFSelk5am9za2IifQ.zjNcEugYFJaiZjaUK8iopUp8yVibSXyQ_KDmhugVbs4';
+let PROXY_URL='';
 
 let token='',dramaId='',episodes=[],currentEp=0,unlockedEps=new Set(),videoCache={},allDramas=[];
 
 function init(){
   try{token=localStorage.getItem('ns_token')||DEFAULT_TOKEN}catch(e){token=DEFAULT_TOKEN}
+  try{PROXY_URL=localStorage.getItem('ns_proxy')||''}catch(e){}
   if(!token.startsWith('Bearer '))token='Bearer '+token;
   document.getElementById('tokenInput').value=token;
+  document.getElementById('proxyInput').value=PROXY_URL;
   if(!navigator.standalone&&/iPhone|iPad/.test(navigator.userAgent)){
     document.getElementById('installBanner').classList.add('show');
   }
+  autoDetectProxy();
   loadHomeDramas();
+}
+
+async function autoDetectProxy(){
+  if(PROXY_URL)return;
+  const tunnels=['https://lip-muscle-enlarge-choosing.trycloudflare.com'];
+  for(const u of tunnels){
+    try{
+      const c=new AbortController();const t=setTimeout(()=>c.abort(),3000);
+      const r=await fetch(u+'/api/health',{signal:c.signal});
+      clearTimeout(t);
+      if(r.ok){PROXY_URL=u;try{localStorage.setItem('ns_proxy',u)}catch(e){}document.getElementById('proxyInput').value=u;return}
+    }catch(e){}
+  }
 }
 
 function showScreen(id){
@@ -204,14 +222,23 @@ function openSettings(){
   document.getElementById('settingsOverlay').classList.add('show');
 }
 function closeSettings(){document.getElementById('settingsOverlay').classList.remove('show')}
-function saveToken(){
+function saveSettings(){
   token=document.getElementById('tokenInput').value.trim();
   if(!token.startsWith('Bearer '))token='Bearer '+token;
-  try{localStorage.setItem('ns_token',token)}catch(e){}
-  toast('Đã lưu token!');closeSettings();
+  PROXY_URL=document.getElementById('proxyInput').value.trim().replace(/\/$/,'');
+  try{localStorage.setItem('ns_token',token);localStorage.setItem('ns_proxy',PROXY_URL)}catch(e){}
+  toast('Đã lưu!');closeSettings();
 }
 
 async function api(path,body){
+  if(PROXY_URL){
+    const res=await fetch(PROXY_URL+'/api/proxy',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({path,body,token:token.replace('Bearer ','')})
+    });
+    return await res.json();
+  }
   const res=await fetch(API_MOBILE+path,{
     method:'POST',
     headers:{
