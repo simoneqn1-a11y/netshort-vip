@@ -369,7 +369,7 @@ async function playEp(idx){
     video.play().catch(()=>{});renderEpisodes();return;
   }
   try{
-    const res=await api('/video/shortPlay/base/episode/detail_info',{shortPlayId:dramaId,episodeId:parseInt(ep.id),episodeNo:ep.no,episodeType:1});
+    const res=await api('/video/shortPlay/base/episode/detail_info',{shortPlayId:dramaId,episodeId:ep.id,episodeNo:ep.no,episodeType:1});
     let videoUrl=null,subUrl=null;
     if(res.data){
       if(res.data.playVoucher){videoUrl=res.data.playVoucher}
