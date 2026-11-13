@@ -174,7 +174,7 @@ let PROXY_URL='';
 
 let token='',dramaId='',episodes=[],currentEp=0,unlockedEps=new Set(),videoCache={},allDramas=[];
 
-function init(){
+async function init(){
   try{token=localStorage.getItem('ns_token')||DEFAULT_TOKEN}catch(e){token=DEFAULT_TOKEN}
   try{PROXY_URL=localStorage.getItem('ns_proxy')||''}catch(e){}
   if(!token.startsWith('Bearer '))token='Bearer '+token;
@@ -183,12 +183,21 @@ function init(){
   if(!navigator.standalone&&/iPhone|iPad/.test(navigator.userAgent)){
     document.getElementById('installBanner').classList.add('show');
   }
-  autoDetectProxy();
   loadHomeDramas();
+  await autoDetectProxy();
+  if(!PROXY_URL)setStatus('⚠ Không tìm thấy proxy — vào ⚙ Cài đặt nhập Proxy URL',true);
 }
 
 async function autoDetectProxy(){
-  if(PROXY_URL)return;
+  if(PROXY_URL){
+    try{
+      const c=new AbortController();const t=setTimeout(()=>c.abort(),3000);
+      const r=await fetch(PROXY_URL+'/api/health',{signal:c.signal});
+      clearTimeout(t);
+      if(r.ok)return;
+    }catch(e){}
+    PROXY_URL='';try{localStorage.removeItem('ns_proxy')}catch(e){}
+  }
   const tunnels=['https://lip-muscle-enlarge-choosing.trycloudflare.com'];
   for(const u of tunnels){
     try{
@@ -232,26 +241,36 @@ function saveSettings(){
 
 async function api(path,body){
   if(PROXY_URL){
-    const res=await fetch(PROXY_URL+'/api/proxy',{
+    try{
+      const res=await fetch(PROXY_URL+'/api/proxy',{
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({path,body,token:token.replace('Bearer ','')})
+      });
+      return await res.json();
+    }catch(e){
+      toast('Proxy lỗi: '+e.message+' — kiểm tra ⚙ Cài đặt');
+      throw e;
+    }
+  }
+  try{
+    const res=await fetch(API_MOBILE+path,{
       method:'POST',
-      headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({path,body,token:token.replace('Bearer ','')})
+      headers:{
+        'Content-Type':'application/json',
+        'Authorization':token,
+        'X-Internal-Crypto-Bypass':BYPASS_HEADER,
+        'Accept-Language':'vi-VN',
+        'device':'ios',
+        'channel':'apple_store'
+      },
+      body:JSON.stringify(body)
     });
     return await res.json();
+  }catch(e){
+    if(!PROXY_URL)toast('Cần Proxy URL — mở ⚙ Cài đặt nhập link tunnel');
+    throw e;
   }
-  const res=await fetch(API_MOBILE+path,{
-    method:'POST',
-    headers:{
-      'Content-Type':'application/json',
-      'Authorization':token,
-      'X-Internal-Crypto-Bypass':BYPASS_HEADER,
-      'Accept-Language':'vi-VN',
-      'device':'ios',
-      'channel':'apple_store'
-    },
-    body:JSON.stringify(body)
-  });
-  return await res.json();
 }
 
 async function loadHomeDramas(){
