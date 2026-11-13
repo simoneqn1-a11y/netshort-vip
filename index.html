@@ -136,7 +136,7 @@ input:focus{border-color:var(--accent)}
 
 <div id="player" class="screen">
   <div class="player-wrap" id="playerWrap" onclick="toggleControls()">
-    <video id="videoEl" playsinline webkit-playsinline></video>
+    <video id="videoEl" playsinline webkit-playsinline crossorigin="anonymous"></video>
     <div class="player-controls">
       <div class="player-nav">
         <button class="btn btn-primary" onclick="event.stopPropagation();playEp(currentEp-1)">⏮ Trước</button>
@@ -198,7 +198,7 @@ async function autoDetectProxy(){
     }catch(e){}
     PROXY_URL='';try{localStorage.removeItem('ns_proxy')}catch(e){}
   }
-  const tunnels=['https://characteristics-intelligent-donors-editor.trycloudflare.com'];
+  const tunnels=['https://lip-muscle-enlarge-choosing.trycloudflare.com'];
   for(const u of tunnels){
     try{
       const c=new AbortController();const t=setTimeout(()=>c.abort(),3000);
@@ -329,7 +329,14 @@ async function openDrama(id){
     if(epRes.data&&epRes.data.shortPlayEpisodeList)epList=epRes.data.shortPlayEpisodeList;
     else if(epRes.data&&Array.isArray(epRes.data))epList=epRes.data;
     else if(epRes.data&&epRes.data.episodeInfoList)epList=epRes.data.episodeInfoList;
-    episodes=epList.map((ep,i)=>({id:String(ep.episodeId||ep.id),no:ep.episodeNo||(i+1),free:ep.isLock===false||ep.isLock===0,title:'Tập '+(ep.episodeNo||(i+1)),playVoucher:ep.playVoucher||''}));
+    episodes=epList.map((ep,i)=>{
+      const obj={id:String(ep.episodeId||ep.id),no:ep.episodeNo||(i+1),free:ep.isLock===false||ep.isLock===0,title:'Tập '+(ep.episodeNo||(i+1)),playVoucher:ep.playVoucher||''};
+      if(ep.subtitleList&&ep.subtitleList.length>0){
+        const viSub=ep.subtitleList.find(s=>s.subtitleLanguage==='vi_VN')||ep.subtitleList[0];
+        if(viSub)obj.subUrl=viSub.url;
+      }
+      return obj;
+    });
     if(epRes.data){
       const name=epRes.data.shortPlayName||allDramas.find(d=>String(d.id||d.shortPlayId)===dramaId)?.shortPlayName||'Drama #'+dramaId;
       const cover=epRes.data.shortPlayCover||epRes.data.coverUrl||allDramas.find(d=>String(d.id||d.shortPlayId)===dramaId)?.coverUrl||'';
@@ -371,6 +378,14 @@ async function unlockAll(){
   toast('🎉 Mở khoá thành công '+ok+' tập!');
 }
 
+function addSubTrack(video,subUrl){
+  const proxied=PROXY_URL?PROXY_URL+'/api/sub?url='+encodeURIComponent(subUrl):subUrl;
+  const tr=document.createElement('track');tr.kind='subtitles';tr.label='Tiếng Việt';tr.srclang='vi';tr.default=true;
+  tr.setAttribute('crossorigin','anonymous');
+  video.appendChild(tr);tr.src=proxied;
+  tr.addEventListener('load',()=>{tr.track.mode='showing'});
+  setTimeout(()=>{if(video.textTracks&&video.textTracks.length>0)video.textTracks[0].mode='showing'},500);
+}
 function playFirst(){if(episodes.length>0)playEp(0)}
 
 async function playEp(idx){
@@ -382,12 +397,14 @@ async function playEp(idx){
   video.querySelectorAll('track').forEach(t=>t.remove());
   if(videoCache[ep.id]){
     video.src=videoCache[ep.id].url;
-    if(videoCache[ep.id].sub){const tr=document.createElement('track');tr.kind='subtitles';tr.label='Tiếng Việt';tr.srclang='vi';tr.src=videoCache[ep.id].sub;tr.default=true;video.appendChild(tr)}
+    if(videoCache[ep.id].sub){addSubTrack(video,videoCache[ep.id].sub)}
     video.play().catch(()=>{});renderEpisodes();return;
   }
   if(ep.playVoucher){
-    videoCache[ep.id]={url:ep.playVoucher,sub:null};
-    video.src=ep.playVoucher;video.play().catch(()=>{});renderEpisodes();return;
+    videoCache[ep.id]={url:ep.playVoucher,sub:ep.subUrl||null};
+    video.src=ep.playVoucher;
+    if(ep.subUrl){addSubTrack(video,ep.subUrl)}
+    video.play().catch(()=>{});renderEpisodes();return;
   }
   try{
     const res=await api('/h5site/shortPlay/base/loadEpisodeByShortPlayId',{shortPlayId:dramaId,episodeId:ep.id,episodeNo:ep.no,episodeType:1,codec:'h264',playClarity:'720p'});
@@ -408,7 +425,7 @@ async function playEp(idx){
     if(videoUrl){
       videoCache[ep.id]={url:videoUrl,sub:subUrl};
       video.src=videoUrl;
-      if(subUrl){const tr=document.createElement('track');tr.kind='subtitles';tr.label='Tiếng Việt';tr.srclang='vi';tr.src=subUrl;tr.default=true;video.appendChild(tr)}
+      if(subUrl){addSubTrack(video,subUrl)}
       video.play().catch(()=>{});
     }else toast('Không lấy được video URL!');
   }catch(e){toast('Lỗi: '+e.message)}
