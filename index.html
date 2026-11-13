@@ -198,7 +198,7 @@ async function autoDetectProxy(){
     }catch(e){}
     PROXY_URL='';try{localStorage.removeItem('ns_proxy')}catch(e){}
   }
-  const tunnels=['https://lip-muscle-enlarge-choosing.trycloudflare.com'];
+  const tunnels=['https://characteristics-intelligent-donors-editor.trycloudflare.com'];
   for(const u of tunnels){
     try{
       const c=new AbortController();const t=setTimeout(()=>c.abort(),3000);
@@ -323,22 +323,20 @@ async function openDrama(id){
   document.getElementById('episodeGrid').innerHTML='<div class="loader"><div class="spinner"></div></div>';
   document.getElementById('statusBar').style.display='none';
   try{
-    const epRes=await api('/video/shortPlay/ad/againUnlock/episode',{shortPlayId:dramaId,episodeId:'0',showInterval:1});
+    const epRes=await api('/h5site/shortPlay/base/loadShortPlayDetail',{shortPlayId:dramaId});
     if(epRes.code!==200&&epRes.code!==0){setStatus('Lỗi: '+(epRes.msg||JSON.stringify(epRes)),true);return}
     let epList=[];
-    if(Array.isArray(epRes.data))epList=epRes.data;
+    if(epRes.data&&epRes.data.shortPlayEpisodeList)epList=epRes.data.shortPlayEpisodeList;
+    else if(epRes.data&&Array.isArray(epRes.data))epList=epRes.data;
     else if(epRes.data&&epRes.data.episodeInfoList)epList=epRes.data.episodeInfoList;
-    episodes=epList.map((ep,i)=>({id:String(ep.id||ep.episodeId),no:ep.episodeNo||(i+1),free:ep.episodeFree===1||ep.episodeFree===true,title:ep.episodeName||('Tập '+(i+1))}));
-    if(episodes.length>0){
-      try{
-        const src=epRes.data&&!Array.isArray(epRes.data)?epRes.data:{};
-        const name=src.shortPlayName||allDramas.find(d=>String(d.id)===dramaId)?.shortPlayName||'Drama #'+dramaId;
-        const cover=src.shortPlayCover||allDramas.find(d=>String(d.id)===dramaId)?.coverUrl||'';
-        document.getElementById('dramaName').textContent=name;
-        document.getElementById('dramaTitle').textContent=name;
-        document.getElementById('dramaMeta').textContent=episodes.length+' tập • VIP CRACKED';
-        if(cover)document.getElementById('dramaHero').style.backgroundImage='url('+cover+')';
-      }catch(e){}
+    episodes=epList.map((ep,i)=>({id:String(ep.episodeId||ep.id),no:ep.episodeNo||(i+1),free:ep.isLock===false||ep.isLock===0,title:'Tập '+(ep.episodeNo||(i+1)),playVoucher:ep.playVoucher||''}));
+    if(epRes.data){
+      const name=epRes.data.shortPlayName||allDramas.find(d=>String(d.id||d.shortPlayId)===dramaId)?.shortPlayName||'Drama #'+dramaId;
+      const cover=epRes.data.shortPlayCover||epRes.data.coverUrl||allDramas.find(d=>String(d.id||d.shortPlayId)===dramaId)?.coverUrl||'';
+      document.getElementById('dramaName').textContent=name;
+      document.getElementById('dramaTitle').textContent=name;
+      document.getElementById('dramaMeta').textContent=episodes.length+' tập • VIP CRACKED';
+      if(cover)document.getElementById('dramaHero').style.backgroundImage='url('+cover+')';
     }
     document.getElementById('epCount').textContent=episodes.length;
     renderEpisodes();
@@ -387,8 +385,12 @@ async function playEp(idx){
     if(videoCache[ep.id].sub){const tr=document.createElement('track');tr.kind='subtitles';tr.label='Tiếng Việt';tr.srclang='vi';tr.src=videoCache[ep.id].sub;tr.default=true;video.appendChild(tr)}
     video.play().catch(()=>{});renderEpisodes();return;
   }
+  if(ep.playVoucher){
+    videoCache[ep.id]={url:ep.playVoucher,sub:null};
+    video.src=ep.playVoucher;video.play().catch(()=>{});renderEpisodes();return;
+  }
   try{
-    const res=await api('/video/shortPlay/base/episode/detail_info',{shortPlayId:dramaId,episodeId:ep.id,episodeNo:ep.no,episodeType:1});
+    const res=await api('/h5site/shortPlay/base/loadEpisodeByShortPlayId',{shortPlayId:dramaId,episodeId:ep.id,episodeNo:ep.no,episodeType:1,codec:'h264',playClarity:'720p'});
     let videoUrl=null,subUrl=null;
     if(res.data){
       if(res.data.playVoucher){videoUrl=res.data.playVoucher}
