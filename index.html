@@ -189,7 +189,7 @@ function init(){
 
 async function autoDetectProxy(){
   if(PROXY_URL)return;
-  const tunnels=['https://characteristics-intelligent-donors-editor.trycloudflare.com'];
+  const tunnels=['https://lip-muscle-enlarge-choosing.trycloudflare.com'];
   for(const u of tunnels){
     try{
       const c=new AbortController();const t=setTimeout(()=>c.abort(),3000);
@@ -306,18 +306,19 @@ async function openDrama(id){
   try{
     const epRes=await api('/video/shortPlay/ad/againUnlock/episode',{shortPlayId:dramaId,episodeId:'0',showInterval:1});
     if(epRes.code!==200&&epRes.code!==0){setStatus('Lỗi: '+(epRes.msg||JSON.stringify(epRes)),true);return}
-    const epList=epRes.data||[];
-    episodes=epList.map((ep,i)=>({id:ep.id||ep.episodeId,no:ep.episodeNo||(i+1),free:ep.episodeFree===1||ep.episodeFree===true,title:ep.episodeName||('Tập '+(i+1))}));
+    let epList=[];
+    if(Array.isArray(epRes.data))epList=epRes.data;
+    else if(epRes.data&&epRes.data.episodeInfoList)epList=epRes.data.episodeInfoList;
+    episodes=epList.map((ep,i)=>({id:String(ep.id||ep.episodeId),no:ep.episodeNo||(i+1),free:ep.episodeFree===1||ep.episodeFree===true,title:ep.episodeName||('Tập '+(i+1))}));
     if(episodes.length>0){
       try{
-        const detailRes=await api('/video/shortPlay/base/episode/detail_info',{shortPlayId:dramaId,episodeId:parseInt(episodes[0].id),episodeNo:1,episodeType:1});
-        if(detailRes.data){
-          const d=detailRes.data;
-          document.getElementById('dramaName').textContent=d.shortPlayName||'Drama #'+dramaId;
-          document.getElementById('dramaTitle').textContent=d.shortPlayName||'Drama';
-          document.getElementById('dramaMeta').textContent=episodes.length+' tập • VIP CRACKED';
-          if(d.coverUrl)document.getElementById('dramaHero').style.backgroundImage='url('+d.coverUrl+')';
-        }
+        const src=epRes.data&&!Array.isArray(epRes.data)?epRes.data:{};
+        const name=src.shortPlayName||allDramas.find(d=>String(d.id)===dramaId)?.shortPlayName||'Drama #'+dramaId;
+        const cover=src.shortPlayCover||allDramas.find(d=>String(d.id)===dramaId)?.coverUrl||'';
+        document.getElementById('dramaName').textContent=name;
+        document.getElementById('dramaTitle').textContent=name;
+        document.getElementById('dramaMeta').textContent=episodes.length+' tập • VIP CRACKED';
+        if(cover)document.getElementById('dramaHero').style.backgroundImage='url('+cover+')';
       }catch(e){}
     }
     document.getElementById('epCount').textContent=episodes.length;
@@ -361,11 +362,34 @@ async function playEp(idx){
   showScreen('player');
   document.getElementById('epLabel').textContent='Tập '+ep.no+' / '+episodes.length;
   const video=document.getElementById('videoEl');video.poster='';video.src='';
-  if(videoCache[ep.id]){video.src=videoCache[ep.id];video.play().catch(()=>{});renderEpisodes();return}
+  video.querySelectorAll('track').forEach(t=>t.remove());
+  if(videoCache[ep.id]){
+    video.src=videoCache[ep.id].url;
+    if(videoCache[ep.id].sub){const tr=document.createElement('track');tr.kind='subtitles';tr.label='Tiếng Việt';tr.srclang='vi';tr.src=videoCache[ep.id].sub;tr.default=true;video.appendChild(tr)}
+    video.play().catch(()=>{});renderEpisodes();return;
+  }
   try{
     const res=await api('/video/shortPlay/base/episode/detail_info',{shortPlayId:dramaId,episodeId:parseInt(ep.id),episodeNo:ep.no,episodeType:1});
-    if(res.data&&res.data.playVoucher){videoCache[ep.id]=res.data.playVoucher;video.src=res.data.playVoucher;video.play().catch(()=>{})}
-    else toast('Không lấy được video URL!');
+    let videoUrl=null,subUrl=null;
+    if(res.data){
+      if(res.data.playVoucher){videoUrl=res.data.playVoucher}
+      else if(res.data.episodeList){
+        const match=res.data.episodeList.find(e=>e.episodeNo===ep.no)||res.data.episodeList[0];
+        if(match){
+          videoUrl=match.playVoucher;
+          if(match.subtitleList&&match.subtitleList.length>0){
+            const viSub=match.subtitleList.find(s=>s.subtitleLanguage==='vi_VN')||match.subtitleList[0];
+            if(viSub)subUrl=viSub.url;
+          }
+        }
+      }
+    }
+    if(videoUrl){
+      videoCache[ep.id]={url:videoUrl,sub:subUrl};
+      video.src=videoUrl;
+      if(subUrl){const tr=document.createElement('track');tr.kind='subtitles';tr.label='Tiếng Việt';tr.srclang='vi';tr.src=subUrl;tr.default=true;video.appendChild(tr)}
+      video.play().catch(()=>{});
+    }else toast('Không lấy được video URL!');
   }catch(e){toast('Lỗi: '+e.message)}
   renderEpisodes();
 }
