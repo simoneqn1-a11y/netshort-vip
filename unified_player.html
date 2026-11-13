@@ -1,0 +1,405 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>StreamCrack — Unified Player</title>
+<style>
+:root {
+  --bg: #0a0a0f;
+  --bg2: #12121a;
+  --bg3: #1a1a2e;
+  --accent: #e63946;
+  --accent2: #ff6b6b;
+  --text: #eee;
+  --text2: #999;
+  --border: #2a2a3e;
+  --rs: #e63946;
+  --db: #f77f00;
+  --sm: #6c5ce7;
+  --card-w: 160px;
+}
+* { margin:0; padding:0; box-sizing:border-box; }
+body { background:var(--bg); color:var(--text); font-family:'Segoe UI',system-ui,sans-serif; min-height:100vh; }
+a { color:var(--accent2); text-decoration:none; }
+
+/* Header */
+.header { background:var(--bg2); border-bottom:1px solid var(--border); padding:12px 20px; display:flex; align-items:center; gap:16px; position:sticky; top:0; z-index:100; }
+.logo { font-size:22px; font-weight:800; background:linear-gradient(135deg,var(--rs),var(--sm)); -webkit-background-clip:text; -webkit-text-fill-color:transparent; white-space:nowrap; }
+.nav { display:flex; gap:6px; flex-wrap:wrap; }
+.nav-btn { padding:6px 14px; border-radius:20px; border:1px solid var(--border); background:transparent; color:var(--text2); cursor:pointer; font-size:13px; transition:.2s; }
+.nav-btn:hover { border-color:var(--accent); color:var(--text); }
+.nav-btn.active { background:var(--accent); border-color:var(--accent); color:#fff; }
+.nav-btn[data-p="reelshort"] { --c:var(--rs); }
+.nav-btn[data-p="dramabox"] { --c:var(--db); }
+.nav-btn[data-p="shortmax"] { --c:var(--sm); }
+.nav-btn[data-p].active { background:var(--c); border-color:var(--c); }
+.status { margin-left:auto; font-size:12px; color:var(--text2); white-space:nowrap; }
+.status .dot { display:inline-block; width:8px; height:8px; border-radius:50%; background:#4caf50; margin-right:4px; vertical-align:middle; }
+.status .dot.off { background:#f44336; }
+
+/* Main layout */
+.main { display:flex; height:calc(100vh - 52px); }
+.sidebar { width:340px; min-width:280px; background:var(--bg2); border-right:1px solid var(--border); display:flex; flex-direction:column; overflow:hidden; }
+.content { flex:1; display:flex; flex-direction:column; overflow:hidden; }
+
+/* Drama list */
+.drama-list-header { padding:12px 16px; border-bottom:1px solid var(--border); display:flex; gap:8px; align-items:center; }
+.drama-list-header h3 { font-size:14px; color:var(--text2); }
+.drama-count { background:var(--bg3); padding:2px 8px; border-radius:10px; font-size:11px; color:var(--text2); }
+.drama-list { flex:1; overflow-y:auto; padding:8px; }
+.drama-card { display:flex; gap:10px; padding:10px; border-radius:8px; cursor:pointer; transition:.2s; border:1px solid transparent; margin-bottom:4px; }
+.drama-card:hover { background:var(--bg3); border-color:var(--border); }
+.drama-card.active { background:var(--bg3); border-color:var(--accent); }
+.drama-card img { width:60px; height:80px; object-fit:cover; border-radius:6px; background:var(--bg3); flex-shrink:0; }
+.drama-card .info { flex:1; min-width:0; }
+.drama-card .title { font-size:13px; font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; margin-bottom:4px; }
+.drama-card .meta { font-size:11px; color:var(--text2); }
+.platform-tag { display:inline-block; padding:1px 6px; border-radius:3px; font-size:10px; font-weight:700; color:#fff; text-transform:uppercase; }
+.platform-tag.reelshort { background:var(--rs); }
+.platform-tag.dramabox { background:var(--db); }
+.platform-tag.shortmax { background:var(--sm); }
+
+/* Player area */
+.player-wrap { background:#000; position:relative; width:100%; max-height:60vh; aspect-ratio:9/16; margin:0 auto; }
+.player-wrap.wide { aspect-ratio:16/9; }
+.player-wrap video { width:100%; height:100%; object-fit:contain; }
+.player-placeholder { display:flex; align-items:center; justify-content:center; height:100%; color:var(--text2); font-size:16px; }
+
+/* Episode list */
+.ep-panel { flex:1; overflow-y:auto; background:var(--bg2); border-top:1px solid var(--border); }
+.ep-header { padding:10px 16px; border-bottom:1px solid var(--border); display:flex; align-items:center; gap:8px; }
+.ep-header h3 { font-size:14px; }
+.ep-grid { display:grid; grid-template-columns:repeat(auto-fill, minmax(70px, 1fr)); gap:6px; padding:12px 16px; }
+.ep-btn { padding:8px 4px; text-align:center; border-radius:6px; border:1px solid var(--border); background:var(--bg3); cursor:pointer; font-size:12px; transition:.2s; color:var(--text); }
+.ep-btn:hover { border-color:var(--accent); }
+.ep-btn.active { background:var(--accent); border-color:var(--accent); color:#fff; }
+.ep-btn.locked { opacity:.5; }
+.ep-btn.locked::after { content:" 🔒"; font-size:10px; }
+.ep-btn.free::after { content:" ✓"; color:#4caf50; font-size:10px; }
+
+/* Quality selector */
+.quality-bar { display:flex; gap:6px; padding:8px 16px; background:var(--bg); border-bottom:1px solid var(--border); align-items:center; }
+.quality-bar span { font-size:12px; color:var(--text2); }
+.q-btn { padding:4px 10px; border-radius:4px; border:1px solid var(--border); background:transparent; color:var(--text2); cursor:pointer; font-size:11px; }
+.q-btn:hover { border-color:var(--accent); color:var(--text); }
+.q-btn.active { background:var(--accent); border-color:var(--accent); color:#fff; }
+
+/* Loading */
+.loading { text-align:center; padding:40px; color:var(--text2); }
+.spinner { display:inline-block; width:24px; height:24px; border:3px solid var(--border); border-top-color:var(--accent); border-radius:50%; animation:spin .8s linear infinite; }
+@keyframes spin { to { transform:rotate(360deg); } }
+
+/* Responsive */
+@media (max-width:768px) {
+  .main { flex-direction:column; }
+  .sidebar { width:100%; height:auto; max-height:40vh; border-right:none; border-bottom:1px solid var(--border); }
+  .player-wrap { max-height:40vh; }
+}
+
+/* Scrollbar */
+::-webkit-scrollbar { width:6px; }
+::-webkit-scrollbar-track { background:var(--bg); }
+::-webkit-scrollbar-thumb { background:var(--border); border-radius:3px; }
+::-webkit-scrollbar-thumb:hover { background:var(--text2); }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="logo">StreamCrack</div>
+  <div class="nav">
+    <button class="nav-btn active" data-p="all" onclick="filterPlatform('all')">All</button>
+    <button class="nav-btn" data-p="reelshort" onclick="filterPlatform('reelshort')">ReelShort</button>
+    <button class="nav-btn" data-p="dramabox" onclick="filterPlatform('dramabox')">DramaBox</button>
+    <button class="nav-btn" data-p="shortmax" onclick="filterPlatform('shortmax')">ShortMax</button>
+  </div>
+  <div class="status">
+    <span class="dot" id="statusDot"></span><span id="statusText">Connecting...</span>
+    <a href="#" onclick="try{localStorage.removeItem('streamcrack_api')}catch{};location.reload();return false" style="margin-left:8px;font-size:11px;color:var(--accent2);">[Server]</a>
+  </div>
+</div>
+
+<div class="main">
+  <div class="sidebar">
+    <div class="drama-list-header">
+      <h3>Drama</h3>
+      <span class="drama-count" id="dramaCount">0</span>
+    </div>
+    <div class="drama-list" id="dramaList">
+      <div class="loading"><div class="spinner"></div><br>Loading...</div>
+    </div>
+  </div>
+
+  <div class="content">
+    <div class="player-wrap" id="playerWrap">
+      <div class="player-placeholder" id="placeholder">Select a drama to start watching</div>
+      <video id="player" style="display:none" controls autoplay></video>
+    </div>
+    <div class="quality-bar" id="qualityBar" style="display:none">
+      <span>Quality:</span>
+    </div>
+    <div class="ep-panel">
+      <div class="ep-header" id="epHeader" style="display:none">
+        <h3 id="epTitle">Episodes</h3>
+        <span class="drama-count" id="epCount">0</span>
+      </div>
+      <div class="ep-grid" id="epGrid"></div>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/hls.js/1.5.7/hls.min.js"></script>
+<script>
+function getAPI() {
+  if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
+    return 'http://localhost:9998';
+  try { const s = localStorage.getItem('streamcrack_api'); if (s) return s; } catch {}
+  return null;
+}
+let API = getAPI();
+
+function showServerPrompt() {
+  const d = document.createElement('div');
+  d.id = 'serverModal';
+  d.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:999;display:flex;align-items:center;justify-content:center;';
+  d.innerHTML = `<div style="background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:24px;max-width:400px;width:90%">
+    <h3 style="margin-bottom:12px">Server URL</h3>
+    <p style="font-size:13px;color:var(--text2);margin-bottom:16px">Nhập URL tunnel server (Cloudflare/localtunnel):</p>
+    <input id="apiInput" type="url" placeholder="https://xxx.trycloudflare.com" style="width:100%;padding:10px;border-radius:6px;border:1px solid var(--border);background:var(--bg3);color:var(--text);font-size:14px;margin-bottom:12px">
+    <button onclick="saveAPI()" style="width:100%;padding:10px;border-radius:6px;border:none;background:var(--accent);color:#fff;font-size:14px;cursor:pointer;font-weight:600">Connect</button>
+  </div>`;
+  document.body.appendChild(d);
+  document.getElementById('apiInput').focus();
+  document.getElementById('apiInput').addEventListener('keydown', e => { if (e.key === 'Enter') saveAPI(); });
+}
+
+function saveAPI() {
+  const v = document.getElementById('apiInput').value.trim().replace(/\/+$/, '');
+  if (!v) return;
+  try { localStorage.setItem('streamcrack_api', v); } catch {}
+  API = v;
+  document.getElementById('serverModal').remove();
+  init();
+}
+
+let allDramas = [];
+let currentFilter = 'all';
+let currentDrama = null;
+let currentChapters = [];
+let currentEpIdx = -1;
+let hls = null;
+
+async function api(path) {
+  const r = await fetch(`${API}${path}`);
+  return r.json();
+}
+
+async function checkHealth() {
+  try {
+    const d = await api('/api/health');
+    document.getElementById('statusDot').className = d.ok ? 'dot' : 'dot off';
+    document.getElementById('statusText').textContent = d.ok ? `Server OK (${d.platforms.length} platforms)` : 'Server Error';
+    return d.ok;
+  } catch {
+    document.getElementById('statusDot').className = 'dot off';
+    document.getElementById('statusText').textContent = 'Server Offline';
+    return false;
+  }
+}
+
+async function loadBrowse() {
+  document.getElementById('dramaList').innerHTML = '<div class="loading"><div class="spinner"></div><br>Loading dramas...</div>';
+  try {
+    const d = await api('/api/browse?platform=all');
+    allDramas = d.dramas || [];
+    renderDramaList();
+  } catch (e) {
+    document.getElementById('dramaList').innerHTML = `<div class="loading">Error: ${e.message}<br><br>Make sure unified_server.py is running on port 9998</div>`;
+  }
+}
+
+function renderDramaList() {
+  const list = document.getElementById('dramaList');
+  const filtered = currentFilter === 'all' ? allDramas : allDramas.filter(d => d.platform === currentFilter);
+  document.getElementById('dramaCount').textContent = filtered.length;
+
+  if (!filtered.length) {
+    list.innerHTML = '<div class="loading">No dramas found</div>';
+    return;
+  }
+
+  list.innerHTML = filtered.map((d, i) => `
+    <div class="drama-card" data-idx="${i}" data-platform="${d.platform}" data-id="${d.id}" data-slug="${d.slug || ''}" onclick="selectDrama(this)">
+      <img src="${d.cover || ''}" onerror="this.style.background='var(--bg3)';this.alt=''" alt="">
+      <div class="info">
+        <div class="title">${d.title}</div>
+        <div class="meta">
+          <span class="platform-tag ${d.platform}">${d.platform}</span>
+          ${d.chapters ? ` &middot; ${d.chapters} eps` : ''}
+        </div>
+        ${d.desc ? `<div class="meta" style="margin-top:4px">${d.desc.substring(0,60)}...</div>` : ''}
+      </div>
+    </div>
+  `).join('');
+}
+
+function filterPlatform(p) {
+  currentFilter = p;
+  document.querySelectorAll('.nav-btn').forEach(b => b.classList.toggle('active', b.dataset.p === p));
+  renderDramaList();
+}
+
+async function selectDrama(el) {
+  const platform = el.dataset.platform;
+  const id = el.dataset.id;
+  const slug = el.dataset.slug;
+
+  document.querySelectorAll('.drama-card').forEach(c => c.classList.remove('active'));
+  el.classList.add('active');
+
+  document.getElementById('epGrid').innerHTML = '<div class="loading"><div class="spinner"></div></div>';
+  document.getElementById('epHeader').style.display = 'flex';
+  document.getElementById('epTitle').textContent = el.querySelector('.title').textContent;
+
+  try {
+    const params = new URLSearchParams({ platform, id });
+    if (slug) params.set('slug', slug);
+    const d = await api(`/api/drama?${params}`);
+    currentDrama = { platform, id, slug, info: d.info };
+    currentChapters = d.chapters || [];
+    renderEpisodes();
+  } catch (e) {
+    document.getElementById('epGrid').innerHTML = `<div class="loading">Error: ${e.message}</div>`;
+  }
+}
+
+function renderEpisodes() {
+  const grid = document.getElementById('epGrid');
+  document.getElementById('epCount').textContent = currentChapters.length;
+
+  grid.innerHTML = currentChapters.map((ch, i) => {
+    const hasVideo = ch.videos && ch.videos.length > 0;
+    const cls = ch.locked && !hasVideo ? 'locked' : (hasVideo ? 'free' : '');
+    return `<button class="ep-btn ${cls}" data-idx="${i}" onclick="playEp(${i})">Ep ${ch.index || i+1}</button>`;
+  }).join('');
+}
+
+async function playEp(idx) {
+  const ch = currentChapters[idx];
+  if (!ch) return;
+  currentEpIdx = idx;
+
+  document.querySelectorAll('.ep-btn').forEach(b => b.classList.remove('active'));
+  const btn = document.querySelector(`.ep-btn[data-idx="${idx}"]`);
+  if (btn) btn.classList.add('active');
+
+  let videos = ch.videos || [];
+
+  if ((!videos.length) && currentDrama.platform === 'shortmax' && ch.slug) {
+    try {
+      const d = await api(`/api/episode?platform=shortmax&slug=${encodeURIComponent(ch.slug)}`);
+      videos = d.videos || [];
+      ch.videos = videos;
+    } catch {}
+  }
+
+  if (!videos.length) {
+    alert('This episode is locked or has no video URL available.');
+    return;
+  }
+
+  renderQuality(videos);
+  playVideo(videos[0]);
+}
+
+function renderQuality(videos) {
+  const bar = document.getElementById('qualityBar');
+  bar.style.display = 'flex';
+  bar.innerHTML = '<span>Quality:</span>' + videos.map((v, i) =>
+    `<button class="q-btn ${i===0?'active':''}" onclick="switchQuality(${i})">${v.quality}${v.codec?' '+v.codec:''}</button>`
+  ).join('');
+}
+
+function switchQuality(idx) {
+  const ch = currentChapters[currentEpIdx];
+  if (!ch || !ch.videos[idx]) return;
+  document.querySelectorAll('.q-btn').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('.q-btn')[idx+1].classList.add('active');
+  playVideo(ch.videos[idx]);
+}
+
+function playVideo(v) {
+  const video = document.getElementById('player');
+  const placeholder = document.getElementById('placeholder');
+  placeholder.style.display = 'none';
+  video.style.display = 'block';
+
+  if (hls) {
+    hls.destroy();
+    hls = null;
+  }
+
+  const url = v.url;
+  const isM3U8 = url.includes('.m3u8') || (v.type === 'm3u8');
+
+  if (isM3U8 && Hls.isSupported()) {
+    hls = new Hls({
+      xhrSetup: (xhr, u) => {
+        if (u.includes('akamai-static') || u.includes('crazymaplestudios') || u.includes('dramabox')) {
+          // direct
+        }
+      }
+    });
+    hls.loadSource(url);
+    hls.attachMedia(video);
+    hls.on(Hls.Events.MANIFEST_PARSED, () => video.play().catch(()=>{}));
+    hls.on(Hls.Events.ERROR, (_, data) => {
+      if (data.fatal) {
+        console.error('HLS fatal error', data);
+        const proxyUrl = `${API}/api/proxy?url=${encodeURIComponent(url)}`;
+        video.src = proxyUrl;
+        video.play().catch(()=>{});
+      }
+    });
+  } else if (isM3U8 && video.canPlayType('application/vnd.apple.mpegurl')) {
+    video.src = url;
+    video.play().catch(()=>{});
+  } else {
+    video.src = url;
+    video.play().catch(()=>{});
+  }
+}
+
+async function init() {
+  if (!API) { showServerPrompt(); return; }
+  const ok = await checkHealth();
+  if (ok) {
+    await loadBrowse();
+  } else {
+    document.getElementById('dramaList').innerHTML = `
+      <div class="loading">
+        <p>Server offline</p>
+        <p style="font-size:12px;margin-top:12px">
+          <a href="#" onclick="try{localStorage.removeItem('streamcrack_api')}catch{};API=null;showServerPrompt();return false" style="color:var(--accent2)">Change server URL</a>
+        </p>
+        <pre style="background:var(--bg3);padding:10px;border-radius:6px;font-size:11px;text-align:left;margin-top:8px">${API}</pre>
+      </div>`;
+  }
+  setInterval(checkHealth, 30000);
+}
+
+const video = document.getElementById('player');
+video.addEventListener('ended', () => {
+  if (currentEpIdx < currentChapters.length - 1) {
+    const nextIdx = currentEpIdx + 1;
+    const nextCh = currentChapters[nextIdx];
+    if (nextCh && (!nextCh.locked || (nextCh.videos && nextCh.videos.length > 0))) {
+      playEp(nextIdx);
+    }
+  }
+});
+init();
+</script>
+</body>
+</html>
